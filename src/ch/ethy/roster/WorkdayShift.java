@@ -1,6 +1,6 @@
 package ch.ethy.roster;
 
-public enum WorkdayShifts implements Shifts {
+public enum WorkdayShift implements Shift {
   EARLY,
   MIDDLE,
   LATE,

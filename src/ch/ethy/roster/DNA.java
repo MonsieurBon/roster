@@ -1,9 +1,5 @@
 package ch.ethy.roster;
 
-import ch.ethy.roster.Shifts;
-import ch.ethy.roster.WeekendShifts;
-import ch.ethy.roster.WorkdayShifts;
-
 import java.time.DayOfWeek;
 import java.time.YearMonth;
 import java.util.EnumSet;
@@ -11,7 +7,7 @@ import java.util.Random;
 
 public class DNA {
   private int fitness = 0;
-  private Shifts[][] genes;
+  private Shift[][] genes;
 
   DNA(YearMonth month, int personnel) {
     this(month.lengthOfMonth(), personnel);
@@ -23,19 +19,33 @@ public class DNA {
   }
 
   private DNA(int daysInMonth, int personnel) {
-    this.genes = new Shifts[daysInMonth][personnel];
+    this.genes = new Shift[daysInMonth][personnel];
   }
 
   public void calcFitness() {
-    this.fitness = 0;
+    int score = 0;
+    // Repeating shifts are good!
+    Shift lastShift = null;
+    for (int i = 0; i < this.genes[0].length; i++) {
+      for (int j = 0; j < this.genes.length; j++) {
+        Shift currentShift = this.genes[j][i];
+        if (lastShift == currentShift) {
+          score++;
+        } else {
+          lastShift = currentShift;
+        }
+      }
+    }
+
+    this.fitness = score;
   }
 
-  private Shifts[] newRandomDay(int personnel, boolean weekend) {
+  private Shift[] newRandomDay(int personnel, boolean weekend) {
     Random r = new Random();
-    Shifts[] day = new Shifts[personnel];
+    Shift[] day = new Shift[personnel];
 
-    Shifts[] shifts = weekend ? WeekendShifts.values() : WorkdayShifts.values();
-    for (Shifts shift : shifts) {
+    Shift[] shifts = weekend ? WeekendShift.values() : WorkdayShift.values();
+    for (Shift shift : shifts) {
       int i;
       do {
         i = r.nextInt(personnel);
@@ -46,7 +56,7 @@ public class DNA {
     return day;
   }
 
-  public double getFitness() {
+  public int getFitness() {
     return fitness;
   }
 
@@ -70,10 +80,10 @@ public class DNA {
     Random r = new Random();
     for (int i = 0; i < this.genes.length; i++) {
       if (r.nextDouble() < mutationRate) {
-        Shifts[] day = this.genes[i];
+        Shift[] day = this.genes[i];
         int a = r.nextInt(day.length);
         int b = r.nextInt(day.length);
-        Shifts shiftA = day[a];
+        Shift shiftA = day[a];
         day[a] = day[b];
         day[b] = shiftA;
       }
@@ -93,7 +103,7 @@ public class DNA {
           String separator = "-------|-";
           sb.append(separator);
         } else {
-          Shifts shift = this.genes[j][i];
+          Shift shift = this.genes[j][i];
           sb.append(String.format("%1$-7s| ", shift == null ? "" : shift.toString()));
         }
       }

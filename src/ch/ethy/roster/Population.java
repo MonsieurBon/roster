@@ -11,6 +11,8 @@ public class Population {
   private boolean finished = false;
   private double mutationRate;
   private String best = "";
+  private int worldRecord = 0;
+  private int generationsSinceWorldRecord = 0;
 
   Population(YearMonth month, int personnel, double mutationRate, int populationSize) {
     this.mutationRate = mutationRate;
@@ -79,7 +81,14 @@ public class Population {
     }
 
     this.best = worldRecordHolder.toString();
-    if (worldRecordHolder.getFitness() > 0) {
+    if (worldRecordHolder.getFitness() > worldRecord) {
+      this.worldRecord = worldRecordHolder.getFitness();
+      this.generationsSinceWorldRecord = 0;
+    } else {
+      this.generationsSinceWorldRecord++;
+    }
+
+    if (this.generationsSinceWorldRecord > 10) {
       this.finished = true;
     }
   }
