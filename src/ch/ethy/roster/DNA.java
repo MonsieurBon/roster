@@ -1,50 +1,115 @@
 package ch.ethy.roster;
 
-import java.time.DayOfWeek;
-import java.time.YearMonth;
-import java.util.EnumSet;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 public class DNA {
   private int fitness = 0;
   private Shift[][] genes;
 
-  DNA(YearMonth month, int personnel) {
-    this(month.lengthOfMonth(), personnel);
+  DNA(int daysInMonth, int personnel) {
+    this.genes = new Shift[daysInMonth][personnel];
 
-    EnumSet<DayOfWeek> weekend = EnumSet.of(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY);
-    for(int i = 0; i < month.lengthOfMonth(); i++) {
-      this.genes[i] = newRandomDay(personnel, weekend.contains(month.atDay(i+1).getDayOfWeek()));
+    for(int i = 0; i < daysInMonth; i++) {
+      this.genes[i] = newRandomDay(personnel);
     }
   }
 
-  private DNA(int daysInMonth, int personnel) {
-    this.genes = new Shift[daysInMonth][personnel];
-  }
-
-  public void calcFitness() {
-    int score = 0;
+  void calcFitness() {
+    int score = 1;
     // Repeating shifts are good!
-    Shift lastShift = null;
     for (int i = 0; i < this.genes[0].length; i++) {
+      Shift lastShift = null;
+      int repetitions = 0;
+      int repetitionsOfSame = 0;
       for (int j = 0; j < this.genes.length; j++) {
         Shift currentShift = this.genes[j][i];
-        if (lastShift == currentShift) {
-          score++;
+        if (lastShift != null) {
+          if (lastShift == currentShift) {
+            repetitions++;
+            repetitionsOfSame++;
+
+            if (repetitionsOfSame >= currentShift.getMaxRepetitions()) {
+              this.fitness = 1;
+              return;
+            }
+
+            if (repetitions >= Shift.getGlobalMax()) {
+              this.fitness = 1;
+              return;
+            }
+
+            if (repetitions >= 7) {
+              score = score - (repetitions - 7);
+            } else {
+              score = score + repetitions;
+            }
+          } else {
+            Shift[] shiftsNotToFollow = lastShift.mayNotBeFollowedBy();
+            if (Arrays.asList(shiftsNotToFollow).contains(currentShift)) {
+              this.fitness = 1;
+              return;
+            }
+            lastShift = currentShift;
+            if (currentShift == null) {
+              repetitions = 0;
+            } else {
+              repetitions++;
+            }
+            repetitionsOfSame = 0;
+          }
         } else {
           lastShift = currentShift;
+          repetitions = 0;
+          repetitionsOfSame = 0;
         }
       }
     }
 
-    this.fitness = score;
+    // Check validity
+    for (Shift[] gene : this.genes) {
+      // Check shifts multiple in gene
+      if(containsDuplicateShifts(gene)){
+        this.fitness = 1;
+        return;
+      }
+
+      if (!containsAllShifts(gene)) {
+        this.fitness = 1;
+        return;
+      }
+    }
+
+    this.fitness = score < 1 ? 1 : score;
   }
 
-  private Shift[] newRandomDay(int personnel, boolean weekend) {
+  private boolean containsAllShifts(Shift[] gene) {
+    return Arrays.asList(gene).containsAll(Arrays.asList(Shift.values()));
+  }
+
+  private boolean containsDuplicateShifts(Shift[] gene) {
+    Set<Shift> foundShifts = new HashSet<>();
+
+    for (Shift shift : gene) {
+      if (shift != null) {
+        if (foundShifts.contains(shift)) {
+          return true;
+        } else {
+          foundShifts.add(shift);
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private Shift[] newRandomDay(int personnel) {
     Random r = new Random();
     Shift[] day = new Shift[personnel];
 
-    Shift[] shifts = weekend ? WeekendShift.values() : WorkdayShift.values();
+    Shift[] shifts = Shift.values();
     for (Shift shift : shifts) {
       int i;
       do {
@@ -56,27 +121,28 @@ public class DNA {
     return day;
   }
 
-  public int getFitness() {
+  int getFitness() {
     return fitness;
   }
 
-  public DNA crossover(DNA partner) {
+  DNA crossover(DNA partner) {
     Random r = new Random();
     DNA child = new DNA(this.genes.length, this.genes[0].length);
-    int midpoint = r.nextInt(this.genes.length);
 
-    for(int i = 0; i < this.genes.length; i++) {
-      if (i > midpoint) {
-        child.genes[i] = this.genes[i];
-      } else {
-        child.genes[i] = partner.genes[i];
+    double useMine = ((double)this.fitness) / (this.fitness + partner.fitness);
+
+    for (int i = 0; i < this.genes.length; i++) {
+      Shift[] gene = this.genes[i];
+      for (int j = 0; j < gene.length; j++) {
+        double rnd = r.nextDouble();
+        child.genes[i][j] = rnd <= useMine ? this.genes[i][j] : partner.genes[i][j];
       }
     }
 
     return child;
   }
 
-  public void mutate(double mutationRate) {
+  void mutate(double mutationRate) {
     Random r = new Random();
     for (int i = 0; i < this.genes.length; i++) {
       if (r.nextDouble() < mutationRate) {

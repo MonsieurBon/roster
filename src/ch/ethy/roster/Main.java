@@ -1,14 +1,12 @@
 package ch.ethy.roster;
 
 
-import java.time.YearMonth;
-
 public class Main {
   public static void main(String[] args) {
-    int populationSize = 200;
+    int populationSize = 100000;
     double mutationRate = 0.01;
 
-    Population population = new Population(YearMonth.of(2018, 3), 10, mutationRate, populationSize);
+    Population population = new Population(15, 6, mutationRate, populationSize);
     population.evaluate();
 
     System.out.println("Current best roster:");
@@ -20,7 +18,7 @@ public class Main {
       population.calcFitness();
       population.evaluate();
 
-      System.out.println("Current best roster:");
+      System.out.println("Current best roster with score " + population.getWorldRecord() + ":");
       System.out.print(population.getBest());
     }
 

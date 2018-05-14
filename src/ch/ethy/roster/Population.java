@@ -1,25 +1,27 @@
 package ch.ethy.roster;
 
-import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Random;
 
-public class Population {
-  private ArrayList<DNA> elements;
-  private ArrayList<DNA> matingPool;
+class Population {
+  private List<DNA> elements;
+  private List<DNA> matingPool;
   private int generations = 0;
   private boolean finished = false;
   private double mutationRate;
-  private String best = "";
   private int worldRecord = 0;
   private int generationsSinceWorldRecord = 0;
+  private int populationSize;
 
-  Population(YearMonth month, int personnel, double mutationRate, int populationSize) {
+  Population(int daysInMonth, int personnel, double mutationRate, int populationSize) {
     this.mutationRate = mutationRate;
+    this.populationSize = populationSize;
 
     this.elements = new ArrayList<>(populationSize);
     for (int i = 0; i < populationSize; i++) {
-      this.elements.add(new DNA(month, personnel));
+      this.elements.add(new DNA(daysInMonth, personnel));
     }
 
     this.calcFitness();
@@ -46,7 +48,7 @@ public class Population {
       if (maxFitness > 0) {
         normFitness = element.getFitness() / maxFitness;
       }
-      double n = normFitness * 100;
+      double n = Math.ceil(normFitness * 100);
       for (int i = 0; i < n; i++) {
         this.matingPool.add(element);
       }
@@ -55,49 +57,49 @@ public class Population {
 
   void reproduce() {
     Random r = new Random();
-    for (int i = 0; i < elements.size(); i++) {
+    for (int i = 0; i < this.populationSize; i++) {
       int a = r.nextInt(this.matingPool.size());
       int b = r.nextInt(this.matingPool.size());
       DNA partnerA = this.matingPool.get(a);
       DNA partnerB = this.matingPool.get(b);
       DNA child = partnerA.crossover(partnerB);
       child.mutate(this.mutationRate);
-      this.elements.set(i, child);
+      this.elements.add(child);
     }
     this.generations++;
   }
 
-  public String getBest() {
-    return best;
+  String getBest() {
+    return this.elements.get(0).toString();
   }
 
-  public void evaluate() {
-    DNA worldRecordHolder = null;
+  void evaluate() {
+    this.elements.sort((o1, o2) -> o2.getFitness() - o1.getFitness());
+    this.elements = new ArrayList<>(this.elements.subList(0, this.populationSize));
 
-    for (DNA element : this.elements) {
-      if (worldRecordHolder == null || worldRecordHolder.getFitness() < element.getFitness()) {
-        worldRecordHolder = element;
-      }
-    }
-
-    this.best = worldRecordHolder.toString();
-    if (worldRecordHolder.getFitness() > worldRecord) {
-      this.worldRecord = worldRecordHolder.getFitness();
+    DNA currentBest = this.elements.get(0);
+    int currentRecord = currentBest.getFitness();
+    if (currentRecord > worldRecord) {
+      this.worldRecord = currentRecord;
       this.generationsSinceWorldRecord = 0;
     } else {
       this.generationsSinceWorldRecord++;
     }
 
-    if (this.generationsSinceWorldRecord > 10) {
+    if (this.generationsSinceWorldRecord > 100) {
       this.finished = true;
     }
   }
 
-  public boolean isFinished() {
+  boolean isFinished() {
     return finished;
   }
 
-  public int getGenerations() {
+  int getGenerations() {
     return generations;
+  }
+
+  int getWorldRecord() {
+    return worldRecord;
   }
 }
