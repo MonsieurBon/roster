@@ -1,34 +1,58 @@
 package ch.ethy.roster;
 
+import java.util.Arrays;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 public enum Shift {
-  EARLY,
-  MIDDLE {
+  EARLY('E') {
     @Override
-    public Shift[] mayNotBeFollowedBy() {
-      return new Shift[]{EARLY};
+    public String getShiftPattern() {
+      return "E{1,10}(?!E)";
     }
   },
-  NIGHT {
+  MIDDLE('M') {
     @Override
-    public int getMaxRepetitions() {
-      return 7;
+    public String getShiftPattern() {
+      return "M{1,10}(?![ME])";
     }
-
+  },
+  NIGHT('N') {
     @Override
-    public Shift[] mayNotBeFollowedBy() {
-      return new Shift[]{EARLY, MIDDLE};
+    public String getShiftPattern() {
+      return "N{1,7}(?=( *$| {4}))";
     }
   };
 
-  public int getMaxRepetitions() {
-    return 10;
+  private static final Pattern PATTERN;
+
+  static {
+    Shift[] allShifts = Shift.values();
+
+    String regexStart = "^ *(((?=\\w{1,10}( |$))(";
+    String shiftPatterns = Arrays.asList(allShifts).stream().map(Shift::getShiftPattern).collect(Collectors.joining("|"));
+    String regexEnd = ")+) *)*$";
+
+    PATTERN = Pattern.compile(regexStart + shiftPatterns + regexEnd);
   }
 
-  public Shift[] mayNotBeFollowedBy() {
-    return new Shift[]{};
+  private final char id;
+
+  Shift(char id) {
+    this.id = id;
   }
+
+  public char getId() {
+    return id;
+  }
+
+  public abstract String getShiftPattern();
 
   public static int getGlobalMax() {
     return 10;
+  }
+
+  public static Pattern getPattern() {
+    return PATTERN;
   }
 }

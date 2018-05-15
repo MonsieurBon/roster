@@ -3,7 +3,7 @@ package ch.ethy.roster;
 
 public class Main {
   public static void main(String[] args) {
-    int populationSize = 100000;
+    int populationSize = 50000;
     double mutationRate = 0.01;
 
     Population population = new Population(15, 6, mutationRate, populationSize);
@@ -19,6 +19,7 @@ public class Main {
       population.evaluate();
 
       System.out.println("Current best roster with score " + population.getWorldRecord() + ":");
+      System.out.println("Generations since best score: " + population.getGenerationsSinceWorldRecord());
       System.out.print(population.getBest());
     }
 

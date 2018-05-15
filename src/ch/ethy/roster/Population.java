@@ -1,7 +1,6 @@
 package ch.ethy.roster;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -14,6 +13,7 @@ class Population {
   private int worldRecord = 0;
   private int generationsSinceWorldRecord = 0;
   private int populationSize;
+  private DNA best;
 
   Population(int daysInMonth, int personnel, double mutationRate, int populationSize) {
     this.mutationRate = mutationRate;
@@ -29,7 +29,7 @@ class Population {
 
   void calcFitness() {
     for (DNA element : this.elements) {
-      element.calcFitness();
+      element.updateFitness();
     }
   }
 
@@ -69,8 +69,8 @@ class Population {
     this.generations++;
   }
 
-  String getBest() {
-    return this.elements.get(0).toString();
+  DNA getBest() {
+    return this.best;
   }
 
   void evaluate() {
@@ -79,14 +79,15 @@ class Population {
 
     DNA currentBest = this.elements.get(0);
     int currentRecord = currentBest.getFitness();
-    if (currentRecord > worldRecord) {
+    if (currentRecord > worldRecord || currentBest != this.best) {
+      this.best = currentBest;
       this.worldRecord = currentRecord;
       this.generationsSinceWorldRecord = 0;
     } else {
       this.generationsSinceWorldRecord++;
     }
 
-    if (this.generationsSinceWorldRecord > 100) {
+    if (this.generationsSinceWorldRecord > 100 && this.worldRecord > 100) {
       this.finished = true;
     }
   }
@@ -97,6 +98,10 @@ class Population {
 
   int getGenerations() {
     return generations;
+  }
+
+  int getGenerationsSinceWorldRecord() {
+    return generationsSinceWorldRecord;
   }
 
   int getWorldRecord() {
