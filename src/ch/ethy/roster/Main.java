@@ -3,10 +3,10 @@ package ch.ethy.roster;
 
 public class Main {
   public static void main(String[] args) {
-    int populationSize = 50000;
-    double mutationRate = 0.01;
+    int populationSize = 100000;
+    double mutationRate = 0.02;
 
-    Population population = new Population(15, 6, mutationRate, populationSize);
+    Population population = new Population(30, 6, mutationRate, populationSize);
     population.evaluate();
 
     System.out.println("Current best roster:");

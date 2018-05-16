@@ -1,8 +1,10 @@
 package ch.ethy.roster;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 class Population {
   private List<DNA> elements;
@@ -13,9 +15,13 @@ class Population {
   private int worldRecord = 0;
   private int generationsSinceWorldRecord = 0;
   private int populationSize;
+  private int daysInMonth;
+  private int personnel;
   private DNA best;
 
   Population(int daysInMonth, int personnel, double mutationRate, int populationSize) {
+    this.daysInMonth = daysInMonth;
+    this.personnel = personnel;
     this.mutationRate = mutationRate;
     this.populationSize = populationSize;
 
@@ -57,6 +63,8 @@ class Population {
 
   void reproduce() {
     Random r = new Random();
+    Set<DNA> newPopulation = new HashSet<>(this.elements);
+
     for (int i = 0; i < this.populationSize; i++) {
       int a = r.nextInt(this.matingPool.size());
       int b = r.nextInt(this.matingPool.size());
@@ -64,8 +72,14 @@ class Population {
       DNA partnerB = this.matingPool.get(b);
       DNA child = partnerA.crossover(partnerB);
       child.mutate(this.mutationRate);
-      this.elements.add(child);
+      newPopulation.add(child);
     }
+
+    while(newPopulation.size() < this.populationSize) {
+      newPopulation.add(new DNA(this.daysInMonth, this.personnel));
+    }
+
+    this.elements = new ArrayList<>(newPopulation);
     this.generations++;
   }
 
@@ -87,7 +101,7 @@ class Population {
       this.generationsSinceWorldRecord++;
     }
 
-    if (this.generationsSinceWorldRecord > 100 && this.worldRecord > 100) {
+    if (this.generationsSinceWorldRecord >= 100) {
       this.finished = true;
     }
   }

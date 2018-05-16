@@ -20,7 +20,7 @@ public enum Shift {
   NIGHT('N') {
     @Override
     public String getShiftPattern() {
-      return "N{1,7}(?=( *$| {4}))";
+      return "N{1,6}(?=$)|N{7}(?=( *$| {4}))";
     }
   };
 

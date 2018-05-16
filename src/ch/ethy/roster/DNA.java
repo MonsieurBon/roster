@@ -1,13 +1,16 @@
 package ch.ethy.roster;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DNA {
   private int fitness = 0;
+  private int invalidShifts = 0;
   private Shift[][] genes;
 
   DNA(int daysInMonth, int personnel) {
@@ -19,63 +22,56 @@ public class DNA {
   }
 
   void updateFitness() {
-    int score = 1;
     if (this.fitness == 0) {
-      // Repeating shifts are good!
-      for (int i = 0; i < this.genes[0].length; i++) {
-        Shift lastShift = null;
-        int repetitions = 0;
-        for (Shift[] gene : this.genes) {
-          Shift currentShift = gene[i];
-          if (lastShift != null) {
-            if (lastShift == currentShift) {
-              repetitions++;
-
-              if (repetitions >= 7) {
-                score = score - (repetitions - 7);
-              } else {
-                score = score + repetitions;
-              }
-            } else {
-              lastShift = currentShift;
-              if (currentShift == null) {
-                repetitions = 0;
-              } else {
-                repetitions++;
-              }
-            }
-          } else {
-            lastShift = currentShift;
-            repetitions = 0;
-          }
-        }
-      }
-
-      this.fitness = score < 1 ? 1 : score;
+      this.fitness = getRepetitionScore();
+      this.invalidShifts = numberOfInvalidShifts();
     }
 
-    if (this.fitness > 1) {
-      validateRoster();
+    this.fitness -= this.invalidShifts;
+
+    if (this.fitness < 1) {
+      this.fitness = 1;
     }
   }
 
-  private void validateRoster() {
-    // Check validity for all days
-//    for (Shift[] gene : this.genes) {
-//      // Check shifts multiple in gene
-//      if(containsDuplicateShifts(gene)){
-//        this.fitness = 1;
-//        return;
-//      }
-//
-//      if (!containsAllShifts(gene)) {
-//        this.fitness = 1;
-//        return;
-//      }
-//    }
+  private int getRepetitionScore() {
+    int score = 0;
+    // Repeating shifts are good!
+    for (int i = 0; i < this.genes[0].length; i++) {
+      Shift lastShift = null;
+      int repetitions = 0;
+      for (Shift[] gene : this.genes) {
+        Shift currentShift = gene[i];
+        if (lastShift != null) {
+          if (lastShift == currentShift) {
+            repetitions++;
+
+            if (repetitions >= 7) {
+              score = score - (repetitions - 7);
+            } else {
+              score = score + repetitions;
+            }
+          } else {
+            lastShift = currentShift;
+            if (currentShift == null) {
+              repetitions = 0;
+            } else {
+              repetitions++;
+            }
+          }
+        } else {
+          lastShift = currentShift;
+          repetitions = 0;
+        }
+      }
+    }
+    return score;
+  }
+
+  private int numberOfInvalidShifts() {
+    int invalidShifts = 0;
 
     // Check validity for all personell
-    int matchCount = 0;
     for (int i = 0; i < this.genes[0].length; i++) {
       StringBuilder shiftStringBuilder = new StringBuilder();
 
@@ -88,13 +84,37 @@ public class DNA {
         }
       }
 
-      Matcher matcher = Shift.getPattern().matcher(shiftStringBuilder.toString());
+      String shiftString = shiftStringBuilder.toString();
 
-      if (matcher.matches()) {
-        matchCount++;
-        this.fitness += matchCount;
+      Matcher matcher = Shift.getPattern().matcher(shiftString);
+
+      if (!matcher.matches()) {
+        invalidShifts++;
       }
     }
+
+    return invalidShifts;
+  }
+
+  private int findViolationsInShiftString(String shiftString) {
+    Pattern pattern = Shift.getPattern();
+
+    int start = 0;
+    int end = 1;
+    int violations = 0;
+
+    while(end <= shiftString.length()) {
+      String subTester = shiftString.substring(start, end);
+      Matcher matcher = pattern.matcher(subTester);
+      if (matcher.matches()) {
+        end++;
+      } else {
+        violations++;
+        start = end-1;
+      }
+    }
+
+    return violations;
   }
 
   private boolean containsAllShifts(Shift[] gene) {
@@ -148,14 +168,6 @@ public class DNA {
       child.genes[i] = rnd <= useMine ? this.genes[i] : partner.genes[i];
     }
 
-//    for (int i = 0; i < this.genes.length; i++) {
-//      Shift[] gene = this.genes[i];
-//      for (int j = 0; j < gene.length; j++) {
-//        double rnd = r.nextDouble();
-//        child.genes[i][j] = rnd <= useMine ? this.genes[i][j] : partner.genes[i][j];
-//      }
-//    }
-
     return child;
   }
 
@@ -163,12 +175,7 @@ public class DNA {
     Random r = new Random();
     for (int i = 0; i < this.genes.length; i++) {
       if (r.nextDouble() < mutationRate) {
-        Shift[] day = this.genes[i];
-        int a = r.nextInt(day.length);
-        int b = r.nextInt(day.length);
-        Shift shiftA = day[a];
-        day[a] = day[b];
-        day[b] = shiftA;
+        this.genes[i] = newRandomDay(this.genes[i].length);
       }
     }
   }
@@ -194,5 +201,28 @@ public class DNA {
     }
 
     return sb.toString();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (obj instanceof DNA) {
+      DNA other = (DNA) obj;
+
+      Shift[][] otherGenes = other.genes;
+      Shift[][] myGenes = this.genes;
+
+      return Arrays.deepEquals(myGenes, otherGenes);
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Arrays.deepHashCode(this.genes);
   }
 }
